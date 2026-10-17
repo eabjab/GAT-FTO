@@ -162,14 +162,16 @@ class PPOTrainer:
                     - self.config.entropy_coef * entropy_mean
                 )
 
-                active_unclipped = (surr1 <= surr2) & (batch_advantages.abs() > 1e-7)
-                if epoch == 0 or bool(active_unclipped.any().item()):
-                    self.optimizer.zero_grad()
-                    loss.backward()
-                    nn.utils.clip_grad_norm_(
-                        self.model.parameters(), self.config.max_grad_norm
-                    )
-                    self.optimizer.step()
+                # active_unclipped = (surr1 <= surr2) & (batch_advantages.abs() > 1e-7)
+                # if epoch == 0 or bool(active_unclipped.any().item()):
+                # Above guard is unnecessary since torch.min(surr1, surr2) already zeroes out the policy gradient on clipped samples automatically via autograd
+                # Should be safe to execute backward/optimizer step on every mini-batch
+                self.optimizer.zero_grad()
+                loss.backward()
+                nn.utils.clip_grad_norm_(
+                    self.model.parameters(), self.config.max_grad_norm
+                )
+                self.optimizer.step()
 
                 with torch.no_grad():
                     approx_kl = (batch_old_log_probs - new_log_probs).mean()
