@@ -194,7 +194,12 @@ def _estimate_unmapped_area(
                 vis_unknown[dr + sensor_range, dc + sensor_range] = True
 
     unknown_count = int(np.count_nonzero(vis_unknown))
-    norm_area = unknown_count / (math.pi * float(sensor_range * sensor_range))
+    if is_omni:
+        norm_area = unknown_count / (math.pi * float(sensor_range * sensor_range))
+    else:
+        fov_fraction = min(1.0, max(1e-6, fov_deg / 360.0))
+        sector_area = fov_fraction * math.pi * float(sensor_range * sensor_range)
+        norm_area = unknown_count / sector_area
     return float(min(1.0, max(0.0, norm_area)))
 
 
