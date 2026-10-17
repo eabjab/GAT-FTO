@@ -553,10 +553,13 @@ class FrontierExplorationEnv(gym.Env):
                 break
 
         # Final orientation alignment + scan if the agent reached the target medoid
+        delta_theta_arr = 0.0
         if reached_target:
+            delta_theta_arr = abs(float(wrap_angle(psi_target - self.agent_pose[2])))   # Penalty for final orientation alignment
             self.agent_pose = (target_pos[0], target_pos[1], float(psi_target))
             self.pose_history[-1] = self.agent_pose
-            self.sensor.scan(self.ground_truth, self.belief_map, self.agent_pose)
+            if not self.sensor._is_omni:    # Avoid redundant scan for omni-directional sensors
+                self.sensor.scan(self.ground_truth, self.belief_map, self.agent_pose)
             self.uncovered_free_cells = int(
                 np.count_nonzero((self.belief_map == 0) & (self.ground_truth == 0))
             )
@@ -598,7 +601,10 @@ class FrontierExplorationEnv(gym.Env):
         dist_term = float(self.config.w_dist) * (
             float(macro_dist) / float(max(1e-8, self.d_diag))
         )
-        turn_term = float(self.config.w_turn) * (float(delta_theta_init) / math.pi)
+        turn_term = float(self.config.w_turn) * (
+                (float(delta_theta_init) / math.pi) +
+                (float(delta_theta_arr) / math.pi)  # Penalty for final orientation alignment upon reaching target
+        )
         reward = float(cov_term - dist_term - turn_term + r_terminal)
 
         self.macro_step_history.append(
