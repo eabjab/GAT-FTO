@@ -94,6 +94,8 @@ def astar_path(
         closed[r, c] = True
 
         for dr, dc, step_cost in NEIGHBORS_8:
+            if dr != 0 and dc != 0 and (grid[r + dr, c] != free_val or grid[r, c + dc] != free_val):
+                continue    # prevent corner cutting
             nr = r + dr
             nc = c + dc
             if 0 <= nr < height and 0 <= nc < width and not closed[nr, nc]:
@@ -144,7 +146,10 @@ def _build_grid_csr(grid: np.ndarray, free_val: int = 0) -> csr_matrix:
     w_list.append(np.ones(u_h.size, dtype=np.float64))
 
     # 3. Diagonal down-right (dr=1, dc=1), weight=sqrt(2)
-    mask_d1 = free_mask[:-1, :-1] & free_mask[1:, 1:]
+    mask_d1 = (
+            free_mask[:-1, :-1] & free_mask[1:, 1:]
+            & free_mask[1:, :-1] & free_mask[:-1, 1:]   # prevent corner cutting
+    )
     u_d1 = node_ids[:-1, :-1][mask_d1]
     v_d1 = node_ids[1:, 1:][mask_d1]
     u_list.append(u_d1)
@@ -152,7 +157,10 @@ def _build_grid_csr(grid: np.ndarray, free_val: int = 0) -> csr_matrix:
     w_list.append(np.full(u_d1.size, SQRT2, dtype=np.float64))
 
     # 4. Diagonal down-left (dr=1, dc=-1), weight=sqrt(2)
-    mask_d2 = free_mask[:-1, 1:] & free_mask[1:, :-1]
+    mask_d2 = (
+            free_mask[:-1, 1:] & free_mask[1:, :-1]
+            & free_mask[:-1, :-1] & free_mask[1:, 1:]   # prevent corner cutting
+    )
     u_d2 = node_ids[:-1, 1:][mask_d2]
     v_d2 = node_ids[1:, :-1][mask_d2]
     u_list.append(u_d2)
