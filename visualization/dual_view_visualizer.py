@@ -481,13 +481,19 @@ class DualViewVisualizer:
             linewidths: list[float] = []
             edge_colors: list[tuple[float, float, float, float]] = []
 
+            # Filter valid non-self-loop edges first and normalize for visual contrast
+            valid_mask = (ei_np[0] != ei_np[1]) & (ei_np[0] < num_nodes) & (ei_np[1] < num_nodes)
+            max_alpha = float(np.max(alpha_mean[valid_mask])) if np.any(valid_mask) else 1.0
+            max_alpha = max(max_alpha, 1e-6)
+
             for e_idx in range(ei_np.shape[1]):
                 u = int(ei_np[0, e_idx])
                 v = int(ei_np[1, e_idx])
                 if u == v or u >= num_nodes or v >= num_nodes:
                     continue
 
-                a_ij = float(np.clip(alpha_mean[e_idx], 0.0, 1.0))
+                # a_ij = float(np.clip(alpha_mean[e_idx], 0.0, 1.0))
+                a_ij = float(np.clip(alpha_mean[e_idx] / max_alpha, 0.0, 1.0))
                 w_ij = 0.5 + 4.0 * a_ij
                 opacity_ij = float(np.clip(a_ij, 0.15, 1.0))
 
