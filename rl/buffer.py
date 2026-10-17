@@ -101,6 +101,8 @@ class RolloutBuffer:
         value: float | torch.Tensor,
     ) -> None:
         """Append a single transition to the rollout buffer (storing graph on CPU)."""
+        if hasattr(graph, "is_frontier") and int(graph.is_frontier.sum().item()) == 0:
+            raise ValueError("Cannot add a terminal graph with 0 frontiers to RolloutBuffer.")
         self.graphs.append(graph.detach().cpu())
         self._actions.append(
             int(action.item()) if isinstance(action, torch.Tensor) else int(action)
